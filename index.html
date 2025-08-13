@@ -9,15 +9,47 @@
   <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
   <style>
-    body { margin: 0; font-family: sans-serif; background: #f3f4f6; }
-    .card { width: 80px; height: 100px; perspective: 1000px; border: 2px solid black; }
-    .card-inner { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform 0.6s; }
-    .flipped { transform: rotateY(180deg); }
-    .card-front, .card-back {
-      position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 4px;
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background: linear-gradient(135deg, #a0d8ff, #d0f0ff); /* Azul claro degradado */
+      overflow: hidden; /* Para que no aparezcan scrolls con posiciones aleatorias */
     }
-    .card-back { background: #333; }
-    .card-front { transform: rotateY(180deg); background-size: cover; background-position: center; }
+    .card {
+      width: 80px;
+      height: 100px;
+      perspective: 1000px;
+      border: 2px solid black;
+      position: absolute; /* Para colocación aleatoria */
+      transition: left 0.5s ease, top 0.5s ease, transform 0.6s ease;
+      cursor: pointer;
+    }
+    .card-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transform-style: preserve-3d;
+      transition: transform 0.6s;
+    }
+    .flipped {
+      transform: rotateY(180deg);
+    }
+    .card-front,
+    .card-back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      border-radius: 4px;
+    }
+    .card-front {
+      transform: rotateY(180deg);
+      background-size: cover;
+      background-position: center;
+    }
+    .card-back {
+      background: #000 url('https://upload.wikimedia.org/wikipedia/commons/3/3e/Disney_wordmark.svg') center/60% no-repeat;
+    }
   </style>
 </head>
 <body>
@@ -28,19 +60,29 @@
     const DEFAULT_CHARACTERS = [
       "https://imgs.search.brave.com/8AvrZWwjDXAx4UNnD2ysYOR8jyddeTHtATdwXR3pME4/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9wbmdm/cmUuY29tL3dwLWNv/bnRlbnQvdXBsb2Fk/cy9taWNrZXktbW91/c2UtcG5nLWZyb20t/cG5nZnJlLTMtMTAy/NHg5NzcucG5n",
       "https://imgs.search.brave.com/07bNiRnHZolJ7XG-c5OoBldrJdMZQtZ_JsPEHAdIiFY/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly93d3cu/cG5nbWFydC5jb20v/ZmlsZXMvNC9NaW5u/aWUtTW91c2UtUE5H/LVBpY3R1cmUucG5n",
-      "https://imgs.search.brave.com/qU-L74zl8PelxjEudLK1UiIgGMkXIbRar6RYqN4bg3k/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly93d3cu/cG5nYWxsLmNvbS93/cC1jb250ZW50L3Vw/bG9hZHMvMjAxNy8w/My9Eb25hbGQtRHVj/ay5wbmc",
+      "https://imgs.search.brave.com/qU-L74zl8PelxjEudLK1UiIgGMkXIbRar6RYqN4bg3k/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly93d3cu/cG5nYWxsLmNvbS93/cC1jb250ZW50L3Vw/bG9hZHMvMjAxNy8w/My9Eb25hbGwtRHVj/ay5wbmc",
       "https://imgs.search.brave.com/rkqA8_kgVVRP20sUc5U0ayTq5dfQjj_o3aMwYNjIaco/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly93d3cu/cG5nYWxsLmNvbS93/cC1jb250ZW50L3Vw/bG9hZHMvMjAxOC8w/NS9EaXNuZXktUE5H/LUZpbGUucG5n",
       "https://imgs.search.brave.com/oeTGvF_nKtqKXVjxHyPG9y_X5l4aWWfbyuH7Ur7Y1JQ/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly9pLnBp/bmltZy5jb20vb3Jp/Z2luYWxzLzM5L2Ri/LzJlLzM5ZGIyZWE3/NTYzYmJkZTI0M2Q0/YTc3OWU2MzNiMjcw/LmpwZw",
       "https://imgs.search.brave.com/rJGBmfN4jueXgi18VxCfc3RSlLDYZnGDAnozLK4GL5Q/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly93d3cu/cG5ncGxheS5jb20v/d3AtY29udGVudC91/cGxvYWRzLzcvRGFp/c3ktRHVjay1GcmVl/LVBORy5wbmc",
       "https://imgs.search.brave.com/E2U7jRucUiMQfRaVTNvAyK-JuGV-lzVx4phbf--gB2w/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly9wbmdp/bWcuY29tL3VwbG9h/ZHMvY2hpcF9hbmRf/ZGFsZS9zbWFsbC9j/aGlwX2FuZF9kYWxl/X1BORzI2LnBuZw",
-      "https://imgs.search.brave.com/wUdu0axXgMBoghlK98OnDkc9y9UXVsR8bwhGQKh3tk4/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly9jbGlw/YXJ0LWxpYnJhcnku/Y29tL2ltYWdlc19r/L2Rpc25leS1jaGFy/YWN0ZXJzLXRyYW5z/cGFyZW50LWJhY2tn/cm91bmQvZGlzbmV5/LWNoYXJhY3RlcnMt/dHJhbnNwYXJlbnQt/YmFja2dyb3VuZC0x/LmpwZw"
+      "https://imgs.search.brave.com/wUdu0axXgMBoghlK98OnDkc9y9UXVsR8bwhGQKh3tk4/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly9jbGlw/YXJ0LWxpYnJhcnku/Y29tL2ltYWdlc19r/L2Rpc25leS1jaGFy/YWN0ZXJzLXRyYW5z/cGFyZW50LWJhY2tn/cm91bmQvZGlzbmV5/LWNoYXJhY3RlcnMt/dHJhbnNwYXJlbnQt/YmFja2dyb3VuZC0x/LmpwZw",
+      "https://imgs.search.brave.com/Q9ieBmS5PUuwJSHONL4uoYw2QIgGvVEBll6cL-WozDk/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly9jbGlw/YXJ0LWxpYnJhcnku/Y29tL25ld19nYWxs/ZXJ5Lzk4LTk4MTMx/MV9nZW5pZS1kaXNu/ZXktY2xpcGFydC1n/ZW5pZS1wcmluY2Vz/cy1qYXNtaW5lLWph/ZmFyLWFsYWRkaW4u/cG5n",
+      "https://imgs.search.brave.com/5E_xyzlgXhzDcqkazhZdjnmiZ3sMVfWTd-pKlMAQKT8/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly93d3cu/cG5nYWxsLmNvbS93/cC1jb250ZW50L3Vw/bG9hZHMvMjAxOC8w/NS9EaXNuZXktUE5H/LVBob3RvLnBuZw",
+      "https://imgs.search.brave.com/kJQpdd2sQkqYYZ53oRMvynvAVDCwjcMwrDVhHtZSM7A/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly93d3cu/cG5nYWxsLmNvbS93/cC1jb250ZW50L3Vw/bG9hZHMvMjAxOC8w/NS9EaXNuZXktRnJl/ZS1QTkctSW1hZ2Uu/cG5n",
+      "https://imgs.search.brave.com/J_cunLXQSlD2cMghAHQ-xdtHlq-p56tgh66WlAeSXCw/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly93d3cu/aW5zcGlyZXVwbGlm/dC5jb20vcmVzaXpl/ci8_aW1hZ2U9aHR0/cHM6Ly9jZG4uaW5z/cGlyZXVwbGlmdC5j/b20vdXBsb2Fkcy9p/bWFnZXMvc2VsbGVy/X3Byb2R1Y3RzLzMw/MDQxLzE3MDY5MzEz/MjlfTWF1aTE0LW1p/bi5wbmcmd2lkdGg9/NjAwJmhlaWdodD02/MDAmcXVhbGl0eT05/MCZmb3JtYXQ9YXV0/byZmaXQ9cGFk"
     ];
 
     function shuffleArray(array) {
       return array
-        .map((value) => ({ value, sort: Math.random() }))
+        .map(value => ({ value, sort: Math.random() }))
         .sort((a, b) => a.sort - b.sort)
         .map(({ value }) => value);
+    }
+
+    function getRandomPosition(maxWidth, maxHeight) {
+      const left = Math.random() * (maxWidth - 80);  // ancho carta
+      const top = Math.random() * (maxHeight - 100); // alto carta
+      return { left, top };
     }
 
     function MahjongDisney() {
@@ -52,19 +94,20 @@
 
       const startNewGame = () => {
         const doubled = [...DEFAULT_CHARACTERS, ...DEFAULT_CHARACTERS];
-        setCards(shuffleArray(doubled).map((img, index) => ({ id: index, img })));
+        const shuffled = shuffleArray(doubled).map((img, index) => {
+          const pos = getRandomPosition(window.innerWidth, window.innerHeight - 150);
+          return { id: index, img, left: pos.left, top: pos.top };
+        });
+        setCards(shuffled);
         setFlipped([]);
         setMatched([]);
         setScore(0);
         setTime(0);
       };
 
+      useEffect(() => { startNewGame(); }, []);
       useEffect(() => {
-        startNewGame();
-      }, []);
-
-      useEffect(() => {
-        const interval = setInterval(() => setTime((t) => t + 1), 1000);
+        const interval = setInterval(() => setTime(t => t + 1), 1000);
         return () => clearInterval(interval);
       }, []);
 
@@ -77,39 +120,42 @@
         if (flipped.length === 2) {
           const [first, second] = flipped;
           if (cards[first].img === cards[second].img) {
-            setMatched((prev) => [...prev, first, second]);
-            setScore((s) => s + 100);
+            setMatched(prev => [...prev, first, second]);
+            setScore(s => s + 100);
             setFlipped([]);
           } else {
             setTimeout(() => setFlipped([]), 1000);
-            setScore((s) => s - 5);
+            setScore(s => s - 5);
           }
         }
       }, [flipped]);
 
-      return React.createElement("div", { className: "p-4" },
-        React.createElement("div", { className: "flex justify-between items-center mb-4" },
+      return React.createElement("div", { className: "p-4 relative w-full h-screen overflow-hidden" },
+        React.createElement("div", { className: "flex justify-between items-center mb-4 text-black font-bold" },
           React.createElement("div", null, "Puntuación: ", score),
           React.createElement("div", null, "Tiempo: ", time, "s"),
-          React.createElement("button", { 
-            onClick: startNewGame, 
+          React.createElement("button", {
+            onClick: startNewGame,
             className: "bg-blue-500 text-white px-4 py-1 rounded hover:bg-blue-600"
           }, "Nueva Partida")
         ),
-        React.createElement("div", { className: "grid grid-cols-4 gap-0" },
-          cards.map((card, idx) => {
-            const isFlipped = flipped.includes(idx) || matched.includes(idx);
-            return React.createElement("div", { key: card.id, className: "card", onClick: () => handleFlip(idx) },
-              React.createElement("div", { className: `card-inner ${isFlipped ? "flipped" : ""}` },
-                React.createElement("div", {
-                  className: "card-front",
-                  style: { backgroundImage: `url(${card.img})` }
-                }),
-                React.createElement("div", { className: "card-back bg-blue-500" })
-              )
-            );
-          })
-        )
+        cards.map((card, idx) => {
+          const isFlipped = flipped.includes(idx) || matched.includes(idx);
+          return React.createElement("div", {
+            key: card.id,
+            className: "card",
+            style: { left: card.left + "px", top: card.top + "px" },
+            onClick: () => handleFlip(idx)
+          },
+            React.createElement("div", { className: `card-inner ${isFlipped ? "flipped" : ""}` },
+              React.createElement("div", {
+                className: "card-front",
+                style: { backgroundImage: `url(${card.img})` }
+              }),
+              React.createElement("div", { className: "card-back" })
+            )
+          );
+        })
       );
     }
 
