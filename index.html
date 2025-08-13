@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Mahjong Disney</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- React y ReactDOM UMD -->
+  <!-- React y ReactDOM -->
   <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
   <style>
@@ -19,7 +19,7 @@
       width: 80px;
       height: 100px;
       perspective: 1000px;
-      border: 2px solid white; /* borde blanco */
+      border: 2px solid white;
       border-radius: 6px;
       position: absolute;
       transition: left 0.5s ease, top 0.5s ease, transform 0.6s ease;
@@ -81,9 +81,26 @@
         .map(({ value }) => value);
     }
 
-    function getRandomPosition(maxWidth, maxHeight) {
-      const left = Math.random() * (maxWidth - 80);
-      const top = Math.random() * (maxHeight - 100);
+    function getRandomNonOverlappingPosition(existingCards, maxWidth, maxHeight) {
+      let left, top;
+      let tries = 0;
+      const cardWidth = 80;
+      const cardHeight = 100;
+      const padding = 10;
+
+      do {
+        left = Math.random() * (maxWidth - cardWidth);
+        top = Math.random() * (maxHeight - cardHeight);
+        tries++;
+      } while (
+        existingCards.some(card =>
+          left < card.left + cardWidth + padding &&
+          left + cardWidth + padding > card.left &&
+          top < card.top + cardHeight + padding &&
+          top + cardHeight + padding > card.top
+        ) && tries < 1000
+      );
+
       return { left, top };
     }
 
@@ -96,9 +113,12 @@
 
       const startNewGame = () => {
         const doubled = [...DEFAULT_CHARACTERS, ...DEFAULT_CHARACTERS];
+        let placedCards = [];
         const shuffled = shuffleArray(doubled).map((img, index) => {
-          const pos = getRandomPosition(window.innerWidth, window.innerHeight - 150);
-          return { id: index, img, left: pos.left, top: pos.top };
+          const pos = getRandomNonOverlappingPosition(placedCards, window.innerWidth, window.innerHeight - 150);
+          const card = { id: index, img, left: pos.left, top: pos.top, rotation: (Math.random() * 20 - 10) };
+          placedCards.push(card);
+          return card;
         });
         setCards(shuffled);
         setFlipped([]);
@@ -146,7 +166,11 @@
           return React.createElement("div", {
             key: card.id,
             className: "card",
-            style: { left: card.left + "px", top: card.top + "px" },
+            style: { 
+              left: card.left + "px", 
+              top: card.top + "px",
+              transform: `rotate(${card.rotation}deg)`
+            },
             onClick: () => handleFlip(idx)
           },
             React.createElement("div", { className: `card-inner ${isFlipped ? "flipped" : ""}` },
