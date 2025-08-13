@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mahjong Disney</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- React y ReactDOM UMD -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <style>
+    body { margin: 0; font-family: sans-serif; background: #f3f4f6; }
+    .card { width: 80px; height: 100px; perspective: 1000px; border: 2px solid black; }
+    .card-inner { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform 0.6s; }
+    .flipped { transform: rotateY(180deg); }
+    .card-front, .card-back {
+      position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 4px;
+    }
+    .card-back { background: #333; }
+    .card-front { transform: rotateY(180deg); background-size: cover; background-position: center; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script>
+    const { useState, useEffect } = React;
+
+    const DEFAULT_CHARACTERS = [
+      "https://imgs.search.brave.com/8AvrZWwjDXAx4UNnD2ysYOR8jyddeTHtATdwXR3pME4/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9wbmdm/cmUuY29tL3dwLWNv/bnRlbnQvdXBsb2Fk/cy9taWNrZXktbW91/c2UtcG5nLWZyb20t/cG5nZnJlLTMtMTAy/NHg5NzcucG5n",
+      "https://imgs.search.brave.com/07bNiRnHZolJ7XG-c5OoBldrJdMZQtZ_JsPEHAdIiFY/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly93d3cu/cG5nbWFydC5jb20v/ZmlsZXMvNC9NaW5u/aWUtTW91c2UtUE5H/LVBpY3R1cmUucG5n",
+      "https://imgs.search.brave.com/qU-L74zl8PelxjEudLK1UiIgGMkXIbRar6RYqN4bg3k/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly93d3cu/cG5nYWxsLmNvbS93/cC1jb250ZW50L3Vw/bG9hZHMvMjAxNy8w/My9Eb25hbGQtRHVj/ay5wbmc",
+      "https://imgs.search.brave.com/rkqA8_kgVVRP20sUc5U0ayTq5dfQjj_o3aMwYNjIaco/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly93d3cu/cG5nYWxsLmNvbS93/cC1jb250ZW50L3Vw/bG9hZHMvMjAxOC8w/NS9EaXNuZXktUE5H/LUZpbGUucG5n",
+      "https://imgs.search.brave.com/oeTGvF_nKtqKXVjxHyPG9y_X5l4aWWfbyuH7Ur7Y1JQ/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly9pLnBp/bmltZy5jb20vb3Jp/Z2luYWxzLzM5L2Ri/LzJlLzM5ZGIyZWE3/NTYzYmJkZTI0M2Q0/YTc3OWU2MzNiMjcw/LmpwZw",
+      "https://imgs.search.brave.com/rJGBmfN4jueXgi18VxCfc3RSlLDYZnGDAnozLK4GL5Q/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly93d3cu/cG5ncGxheS5jb20v/d3AtY29udGVudC91/cGxvYWRzLzcvRGFp/c3ktRHVjay1GcmVl/LVBORy5wbmc",
+      "https://imgs.search.brave.com/E2U7jRucUiMQfRaVTNvAyK-JuGV-lzVx4phbf--gB2w/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly9wbmdp/bWcuY29tL3VwbG9h/ZHMvY2hpcF9hbmRf/ZGFsZS9zbWFsbC9j/aGlwX2FuZF9kYWxl/X1BORzI2LnBuZw",
+      "https://imgs.search.brave.com/wUdu0axXgMBoghlK98OnDkc9y9UXVsR8bwhGQKh3tk4/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly9jbGlw/YXJ0LWxpYnJhcnku/Y29tL2ltYWdlc19r/L2Rpc25leS1jaGFy/YWN0ZXJzLXRyYW5z/cGFyZW50LWJhY2tn/cm91bmQvZGlzbmV5/LWNoYXJhY3RlcnMt/dHJhbnNwYXJlbnQt/YmFja2dyb3VuZC0x/LmpwZw"
+    ];
+
+    function shuffleArray(array) {
+      return array
+        .map((value) => ({ value, sort: Math.random() }))
+        .sort((a, b) => a.sort - b.sort)
+        .map(({ value }) => value);
+    }
+
+    function MahjongDisney() {
+      const [cards, setCards] = useState([]);
+      const [flipped, setFlipped] = useState([]);
+      const [matched, setMatched] = useState([]);
+      const [score, setScore] = useState(0);
+      const [time, setTime] = useState(0);
+
+      const startNewGame = () => {
+        const doubled = [...DEFAULT_CHARACTERS, ...DEFAULT_CHARACTERS];
+        setCards(shuffleArray(doubled).map((img, index) => ({ id: index, img })));
+        setFlipped([]);
+        setMatched([]);
+        setScore(0);
+        setTime(0);
+      };
+
+      useEffect(() => {
+        startNewGame();
+      }, []);
+
+      useEffect(() => {
+        const interval = setInterval(() => setTime((t) => t + 1), 1000);
+        return () => clearInterval(interval);
+      }, []);
+
+      const handleFlip = (id) => {
+        if (flipped.length === 2 || flipped.includes(id) || matched.includes(id)) return;
+        setFlipped([...flipped, id]);
+      };
+
+      useEffect(() => {
+        if (flipped.length === 2) {
+          const [first, second] = flipped;
+          if (cards[first].img === cards[second].img) {
+            setMatched((prev) => [...prev, first, second]);
+            setScore((s) => s + 100);
+            setFlipped([]);
+          } else {
+            setTimeout(() => setFlipped([]), 1000);
+            setScore((s) => s - 5);
+          }
+        }
+      }, [flipped]);
+
+      return React.createElement("div", { className: "p-4" },
+        React.createElement("div", { className: "flex justify-between items-center mb-4" },
+          React.createElement("div", null, "Puntuación: ", score),
+          React.createElement("div", null, "Tiempo: ", time, "s"),
+          React.createElement("button", { 
+            onClick: startNewGame, 
+            className: "bg-blue-500 text-white px-4 py-1 rounded hover:bg-blue-600"
+          }, "Nueva Partida")
+        ),
+        React.createElement("div", { className: "grid grid-cols-4 gap-0" },
+          cards.map((card, idx) => {
+            const isFlipped = flipped.includes(idx) || matched.includes(idx);
+            return React.createElement("div", { key: card.id, className: "card", onClick: () => handleFlip(idx) },
+              React.createElement("div", { className: `card-inner ${isFlipped ? "flipped" : ""}` },
+                React.createElement("div", {
+                  className: "card-front",
+                  style: { backgroundImage: `url(${card.img})` }
+                }),
+                React.createElement("div", { className: "card-back bg-blue-500" })
+              )
+            );
+          })
+        )
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(React.createElement(MahjongDisney));
+  </script>
+</body>
+</html>
