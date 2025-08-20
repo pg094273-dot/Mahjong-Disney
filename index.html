@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <title>Mahjong Disney</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- React y ReactDOM UMD -->
   <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
   <style>
@@ -92,19 +91,25 @@
         .map(({ value }) => value);
     }
 
-    function generateRandomPositions(numCards, cardW, cardH, maxW, maxH) {
+    // Genera posiciones aleatorias sin solapamiento
+    function generateNonOverlappingPositions(numCards, cardW, cardH, maxW, maxH) {
       let positions = [];
+      let maxAttempts = numCards * 500;
       let attempts = 0;
-      while (positions.length < numCards && attempts < numCards * 50) {
+      while (positions.length < numCards && attempts < maxAttempts) {
         attempts++;
         let left = Math.floor(Math.random() * (maxW - cardW - 10));
-        let top = Math.floor(Math.random() * (maxH - cardH - 80)) + 60; // dejando espacio arriba
+        let top = Math.floor(Math.random() * (maxH - cardH - 80)) + 60;
         let newPos = { left, top };
-        // comprobar que no se solape
-        let overlap = positions.some(pos => 
-          Math.abs(pos.left - newPos.left) < cardW + 10 &&
-          Math.abs(pos.top - newPos.top) < cardH + 10
+
+        // Verificación estricta de colisión
+        let overlap = positions.some(pos =>
+          !(newPos.left + cardW + 5 < pos.left ||
+            newPos.left > pos.left + cardW + 5 ||
+            newPos.top + cardH + 5 < pos.top ||
+            newPos.top > pos.top + cardH + 5)
         );
+
         if (!overlap) positions.push(newPos);
       }
       return positions;
@@ -127,7 +132,7 @@
 
         const doubled = [...DEFAULT_CHARACTERS, ...DEFAULT_CHARACTERS];
         const shuffled = shuffleArray(doubled); 
-        const positions = generateRandomPositions(
+        const positions = generateNonOverlappingPositions(
           shuffled.length, w, h, window.innerWidth, window.innerHeight
         );
 
