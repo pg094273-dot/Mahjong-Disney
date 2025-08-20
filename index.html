@@ -92,20 +92,20 @@
         .map(({ value }) => value);
     }
 
-    function generatePositions(numCards, cardW, cardH, maxW, maxH) {
-      const cols = Math.floor(maxW / (cardW + 10));
-      const rows = Math.ceil(numCards / cols);
+    function generateRandomPositions(numCards, cardW, cardH, maxW, maxH) {
       let positions = [];
-      let i = 0;
-      for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-          if (i >= numCards) break;
-          positions.push({ 
-            left: c * (cardW + 10) + 5, 
-            top: r * (cardH + 10) + 60 
-          });
-          i++;
-        }
+      let attempts = 0;
+      while (positions.length < numCards && attempts < numCards * 50) {
+        attempts++;
+        let left = Math.floor(Math.random() * (maxW - cardW - 10));
+        let top = Math.floor(Math.random() * (maxH - cardH - 80)) + 60; // dejando espacio arriba
+        let newPos = { left, top };
+        // comprobar que no se solape
+        let overlap = positions.some(pos => 
+          Math.abs(pos.left - newPos.left) < cardW + 10 &&
+          Math.abs(pos.top - newPos.top) < cardH + 10
+        );
+        if (!overlap) positions.push(newPos);
       }
       return positions;
     }
@@ -126,11 +126,15 @@
         setCardSize({w,h});
 
         const doubled = [...DEFAULT_CHARACTERS, ...DEFAULT_CHARACTERS];
-        const shuffled = shuffleArray(doubled);
-        const positions = generatePositions(shuffled.length, w, h, window.innerWidth, window.innerHeight-100);
+        const shuffled = shuffleArray(doubled); 
+        const positions = generateRandomPositions(
+          shuffled.length, w, h, window.innerWidth, window.innerHeight
+        );
+
         const arranged = shuffled.map((img, index) => ({
           id:index, img, ...positions[index]
         }));
+
         setCards(arranged);
         setFlipped([]);
         setMatched([]);
