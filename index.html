@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <title>Mahjong Disney</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- React y ReactDOM UMD -->
@@ -16,15 +16,13 @@
       overflow: hidden;
     }
     .card {
-      width: 80px;
-      height: 100px;
+      position: absolute;
       perspective: 1000px;
       border: 2px solid white;
       border-radius: 6px;
-      position: absolute;
-      transition: left 0.5s ease, top 0.5s ease, transform 0.6s ease;
       cursor: pointer;
       box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+      transition: transform 0.6s;
     }
     .card-inner {
       position: relative;
@@ -52,19 +50,18 @@
     .card-back {
       background: #000 url('https://upload.wikimedia.org/wikipedia/commons/3/3e/Disney_wordmark.svg') center/60% no-repeat;
     }
-    .end-message {
-      position: fixed;
+    .game-over {
+      position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      background: rgba(255, 255, 255, 0.9);
-      padding: 30px 50px;
-      border-radius: 10px;
-      font-size: 2rem;
+      background: rgba(255,255,255,0.9);
+      padding: 20px 40px;
+      border-radius: 12px;
+      font-size: 1.5rem;
       font-weight: bold;
       color: #333;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-      z-index: 999;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.4);
     }
   </style>
 </head>
@@ -95,19 +92,22 @@
         .map(({ value }) => value);
     }
 
-    function generatePositions(count, cardWidth, cardHeight, padding = 10) {
-      const positions = [];
-      const cols = Math.floor(window.innerWidth / (cardWidth + padding));
-      const rows = Math.floor(window.innerHeight / (cardHeight + padding));
-      const available = [];
-
+    function generatePositions(numCards, cardW, cardH, maxW, maxH) {
+      const cols = Math.floor(maxW / (cardW + 10));
+      const rows = Math.ceil(numCards / cols);
+      let positions = [];
+      let i = 0;
       for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
-          available.push({ left: c * (cardWidth + padding), top: r * (cardHeight + padding) });
+          if (i >= numCards) break;
+          positions.push({ 
+            left: c * (cardW + 10) + 5, 
+            top: r * (cardH + 10) + 60 
+          });
+          i++;
         }
       }
-      const shuffled = shuffleArray(available);
-      return shuffled.slice(0, count);
+      return positions;
     }
 
     function MahjongDisney() {
@@ -116,29 +116,45 @@
       const [matched, setMatched] = useState([]);
       const [score, setScore] = useState(0);
       const [time, setTime] = useState(0);
+      const [cardSize, setCardSize] = useState({w:80, h:100});
+      const [gameOver, setGameOver] = useState(false);
 
-      const startNewGame = () => {
+      const setupGame = () => {
+        const isMobile = window.innerWidth < 600;
+        const w = isMobile ? 60 : 80;
+        const h = isMobile ? 80 : 100;
+        setCardSize({w,h});
+
         const doubled = [...DEFAULT_CHARACTERS, ...DEFAULT_CHARACTERS];
-        const shuffledImgs = shuffleArray(doubled);
-        const positions = generatePositions(doubled.length, 80, 100);
-        const placedCards = shuffledImgs.map((img, index) => ({
-          id: index,
-          img,
-          left: positions[index].left,
-          top: positions[index].top
+        const shuffled = shuffleArray(doubled);
+        const positions = generatePositions(shuffled.length, w, h, window.innerWidth, window.innerHeight-100);
+        const arranged = shuffled.map((img, index) => ({
+          id:index, img, ...positions[index]
         }));
-        setCards(placedCards);
+        setCards(arranged);
         setFlipped([]);
         setMatched([]);
         setScore(0);
         setTime(0);
+        setGameOver(false);
       };
 
-      useEffect(() => { startNewGame(); }, []);
+      useEffect(() => {
+        setupGame();
+        window.addEventListener("resize", setupGame);
+        return () => window.removeEventListener("resize", setupGame);
+      }, []);
+
       useEffect(() => {
         const interval = setInterval(() => setTime(t => t + 1), 1000);
         return () => clearInterval(interval);
       }, []);
+
+      useEffect(() => {
+        if (matched.length === cards.length && cards.length>0) {
+          setGameOver(true);
+        }
+      }, [matched, cards]);
 
       const handleFlip = (id) => {
         if (flipped.length === 2 || flipped.includes(id) || matched.includes(id)) return;
@@ -159,35 +175,27 @@
         }
       }, [flipped]);
 
-      const gameFinished = matched.length === cards.length && cards.length > 0;
-
-      return React.createElement("div", { className: "p-4 relative w-full h-screen overflow-hidden" },
-        React.createElement("div", { className: "flex justify-between items-center mb-4 text-black font-bold" },
-          React.createElement("div", null, "Puntuación: ", score),
-          React.createElement("div", null, "Tiempo: ", time, "s"),
-          React.createElement("button", {
-            onClick: startNewGame,
-            className: "bg-blue-500 text-white px-4 py-1 rounded hover:bg-blue-600"
-          }, "Nueva Partida")
+      return React.createElement("div", { className:"relative w-full h-screen overflow-hidden" },
+        React.createElement("div",{className:"flex justify-between items-center mb-2 p-2 text-black font-bold bg-white/70"},
+          React.createElement("div",null,"Puntuación: ",score),
+          React.createElement("div",null,"Tiempo: ",time,"s"),
+          React.createElement("button",{onClick:setupGame,className:"bg-blue-500 text-white px-3 py-1 rounded"},"Nueva Partida")
         ),
         cards.map((card, idx) => {
           const isFlipped = flipped.includes(idx) || matched.includes(idx);
           return React.createElement("div", {
             key: card.id,
-            className: "card",
-            style: { left: card.left + "px", top: card.top + "px" },
-            onClick: () => handleFlip(idx)
+            className:"card",
+            style:{left:card.left+"px",top:card.top+"px",width:cardSize.w+"px",height:cardSize.h+"px"},
+            onClick:()=>handleFlip(idx)
           },
-            React.createElement("div", { className: `card-inner ${isFlipped ? "flipped" : ""}` },
-              React.createElement("div", {
-                className: "card-front",
-                style: { backgroundImage: `url(${card.img})` }
-              }),
-              React.createElement("div", { className: "card-back" })
+            React.createElement("div",{className:`card-inner ${isFlipped?"flipped":""}`},
+              React.createElement("div",{className:"card-front",style:{backgroundImage:`url(${card.img})`}}),
+              React.createElement("div",{className:"card-back"})
             )
           );
         }),
-        gameFinished && React.createElement("div", { className: "end-message" }, "🎉 ¡Fin de partida! 🎉")
+        gameOver && React.createElement("div",{className:"game-over"},"🎉 Fin de la partida 🎉")
       );
     }
 
